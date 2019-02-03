@@ -70,7 +70,10 @@ def save_checkpoint(model, optimizer, learning_rate, iteration, filepath, drive_
                 'learning_rate': learning_rate}, filepath)
     for file in drive.ListFile({'q': "'" + drive_fid + "' in parents"}).GetList():
         file.Delete()
-    f = drive.CreateFile({"parents": [{"kind": "drive#fileLink", "id": drive_fid}]})
+    f = drive.CreateFile({
+        'title': filepath[filepath.find("/")+1:], 
+        "parents": [{"kind": "drive#fileLink", "id": drive_fid}]
+        })
     f.SetContentFile(filepath)
     f.Upload()
 
