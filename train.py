@@ -38,6 +38,16 @@ from torch.utils.data import DataLoader
 from glow import WaveGlow, WaveGlowLoss
 from mel2samp import Mel2Samp
 
+from pydrive.auth import GoogleAuth
+from pydrive.drive import GoogleDrive
+from google.colab import auth
+from oauth2client.client import GoogleCredentials
+
+auth.authenticate_user()
+gauth = GoogleAuth()
+gauth.credentials = GoogleCredentials.get_application_default()
+drive = GoogleDrive(gauth)
+
 def load_checkpoint(checkpoint_path, model, optimizer):
     assert os.path.isfile(checkpoint_path)
     checkpoint_dict = torch.load(checkpoint_path, map_location='cpu')
@@ -49,7 +59,7 @@ def load_checkpoint(checkpoint_path, model, optimizer):
           checkpoint_path, iteration))
     return model, optimizer, iteration
 
-def save_checkpoint(model, optimizer, learning_rate, iteration, filepath):
+def save_checkpoint(model, optimizer, learning_rate, iteration, filepath, drive_fid):
     print("Saving model and optimizer state at iteration {} to {}".format(
           iteration, filepath))
     model_for_saving = WaveGlow(**waveglow_config).cuda()
@@ -58,9 +68,14 @@ def save_checkpoint(model, optimizer, learning_rate, iteration, filepath):
                 'iteration': iteration,
                 'optimizer': optimizer.state_dict(),
                 'learning_rate': learning_rate}, filepath)
+    for file in drive.ListFile({'q': "'" + drive_fid + "' in parents"}).GetList():
+        file.Delete()
+    f = drive.CreateFile({"parents": [{"kind": "drive#fileLink", "id": drive_fid}]})
+    f.SetContentFile(filepath)
+    f.Upload()
 
 def train(num_gpus, rank, group_name, output_directory, epochs, learning_rate,
-          sigma, iters_per_checkpoint, batch_size, seed, checkpoint_path):
+          sigma, iters_per_checkpoint, batch_size, seed, checkpoint_path, drive_fid):
     torch.manual_seed(seed)
     torch.cuda.manual_seed(seed)
     #=====START: ADDED FOR DISTRIBUTED======
@@ -80,6 +95,12 @@ def train(num_gpus, rank, group_name, output_directory, epochs, learning_rate,
 
     # Load checkpoint if one exists
     iteration = 0
+    if checkpoint_path == "":
+        for file in drive.ListFile({'q': "'" + drive_fid + "' in parents"}).GetList():
+            checkpoint_path = "{}/{}".format(
+                output_directory, file["title"])
+            file.GetContentFile(checkpoint_path)
+            break
     if checkpoint_path != "":
         model, optimizer, iteration = load_checkpoint(checkpoint_path, model,
                                                       optimizer)
