@@ -7,10 +7,11 @@
         "iters_per_checkpoint": 2000,
         "batch_size": 3,
         "seed": 1234,
-        "checkpoint_path": ""
+        "checkpoint_path": "",
+        "drive_fid": ""
     },
     "data_config": {
-        "training_files":"train_files.txt",
+        "training_files": "train_files.txt",
         "segment_length": 16000,
         "sampling_rate": 22050,
         "filter_length": 1024,

@@ -151,7 +151,7 @@ def train(num_gpus, rank, group_name, output_directory, epochs, learning_rate,
                     checkpoint_path = "{}/waveglow_{}".format(
                         output_directory, iteration)
                     save_checkpoint(model, optimizer, learning_rate, iteration,
-                                    checkpoint_path)
+                                    checkpoint_path, drive_fid)
 
             iteration += 1
 
