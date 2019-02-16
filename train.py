@@ -68,6 +68,10 @@ def save_checkpoint(model, optimizer, learning_rate, iteration, filepath, drive_
                 'iteration': iteration,
                 'optimizer': optimizer.state_dict(),
                 'learning_rate': learning_rate}, filepath)
+    auth.authenticate_user()
+    gauth = GoogleAuth()
+    gauth.credentials = GoogleCredentials.get_application_default()
+    drive = GoogleDrive(gauth)
     for file in drive.ListFile({'q': "'" + drive_fid + "' in parents"}).GetList():
         file.Delete()
     f = drive.CreateFile({
