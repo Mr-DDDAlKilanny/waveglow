@@ -68,10 +68,18 @@ def save_checkpoint(model, optimizer, learning_rate, iteration, filepath, drive_
                 'iteration': iteration,
                 'optimizer': optimizer.state_dict(),
                 'learning_rate': learning_rate}, filepath)
-    auth.authenticate_user()
-    gauth = GoogleAuth()
-    gauth.credentials = GoogleCredentials.get_application_default()
-    drive = GoogleDrive(gauth)
+    if gauth.credentials is None:
+        # Authenticate if they're not there
+        gauth.LocalWebserverAuth()
+    elif gauth.access_token_expired:
+        # Refresh them if expired
+        print("Google Drive Token Expired, Refreshing")
+        gauth.Refresh()
+    else:
+        # Initialize the saved creds
+        gauth.Authorize()
+    # Save the current credentials to a file
+    # gauth.SaveCredentialsFile("GoogleDriveCredentials.txt")
     for file in drive.ListFile({'q': "'" + drive_fid + "' in parents"}).GetList():
         file.Delete()
     f = drive.CreateFile({
