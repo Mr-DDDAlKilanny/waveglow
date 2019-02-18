@@ -114,7 +114,8 @@ def train(num_gpus, rank, group_name, output_directory, epochs, learning_rate,
         for file in drive.ListFile({'q': "'" + drive_fid + "' in parents"}).GetList():
             checkpoint_path = "{}/{}".format(
                 output_directory, file["title"])
-            file.GetContentFile(checkpoint_path)
+            if not os.path.isfile(checkpoint_path):
+                file.GetContentFile(checkpoint_path)
             break
     if checkpoint_path != "":
         model, optimizer, iteration = load_checkpoint(checkpoint_path, model,
