@@ -69,27 +69,32 @@ def save_checkpoint(model, optimizer, learning_rate, iteration, filepath, drive_
                 'iteration': iteration,
                 'optimizer': optimizer.state_dict(),
                 'learning_rate': learning_rate}, filepath)
-    if gauth.credentials is None:
-        # Authenticate if they're not there
-        gauth.LocalWebserverAuth()
-    elif gauth.access_token_expired:
-        # Refresh them if expired
-        print("Google Drive Token Expired, Refreshing")
-        gauth.Refresh()
-    else:
-        # Initialize the saved creds
-        gauth.Authorize()
-    # Save the current credentials to a file
-    # gauth.SaveCredentialsFile("GoogleDriveCredentials.txt")
-    for file in drive.ListFile({'q': "'" + drive_fid + "' in parents"}).GetList():
-        file.Delete()
-        sleep(30) #make sure the file is deleted from drive first
-    f = drive.CreateFile({
-        'title': filepath[filepath.find("/")+1:], 
-        "parents": [{"kind": "drive#fileLink", "id": drive_fid}]
-        })
-    f.SetContentFile(filepath)
-    f.Upload()
+    for _ in range(10):
+        try:
+            if gauth.credentials is None:
+                # Authenticate if they're not there
+                gauth.LocalWebserverAuth()
+            elif gauth.access_token_expired:
+                # Refresh them if expired
+                print("Google Drive Token Expired, Refreshing")
+                gauth.Refresh()
+            else:
+                # Initialize the saved creds
+                gauth.Authorize()
+            # Save the current credentials to a file
+            # gauth.SaveCredentialsFile("GoogleDriveCredentials.txt")
+            for file in drive.ListFile({'q': "'" + drive_fid + "' in parents"}).GetList():
+                file.Delete()
+                sleep(30) #make sure the file is deleted from drive first
+            f = drive.CreateFile({
+                'title': filepath[filepath.find("/")+1:], 
+                "parents": [{"kind": "drive#fileLink", "id": drive_fid}]
+                })
+            f.SetContentFile(filepath)
+            f.Upload()
+            break
+        except:
+            sleep(30)
 
 def train(num_gpus, rank, group_name, output_directory, epochs, learning_rate,
           sigma, iters_per_checkpoint, batch_size, seed, fp16_run, checkpoint_path, drive_fid):
