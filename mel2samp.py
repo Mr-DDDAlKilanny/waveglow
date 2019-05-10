@@ -65,7 +65,7 @@ class Mel2Samp(torch.utils.data.Dataset):
     def __init__(self, training_files, segment_length, filter_length,
                  hop_length, win_length, sampling_rate, mel_fmin, mel_fmax):
         self.audio_files = files_to_list(training_files)
-        self.audio_files_segment_pos = [0 for _ in self.audio_files]
+        self.audio_files_segment_pos = [-1 for _ in self.audio_files]
         random.seed(1234)
         random.shuffle(self.audio_files)
         self.stft = TacotronSTFT(filter_length=filter_length,
@@ -95,6 +95,8 @@ class Mel2Samp(torch.utils.data.Dataset):
         # Take segment
         if audio.size(0) >= self.segment_length:
             max_audio_start = audio.size(0) - self.segment_length
+            if self.audio_files_segment_pos[index] == -1:
+                self.audio_files_segment_pos[index] = random.randint(0, max_audio_start)
             audio_start = self.audio_files_segment_pos[index]
             self.audio_files_segment_pos[index] += (self.sampling_rate // random.randint(1, 20))
             if self.audio_files_segment_pos[index] > max_audio_start:
