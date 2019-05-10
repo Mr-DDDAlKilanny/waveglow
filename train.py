@@ -69,7 +69,11 @@ def save_checkpoint(model, optimizer, learning_rate, iteration, filepath, drive_
                 'iteration': iteration,
                 'optimizer': optimizer.state_dict(),
                 'learning_rate': learning_rate}, filepath)
-    for _ in range(10):
+    uploaded = False
+    attempt = 0
+    file_title = filepath[filepath.find("/")+1:]
+    while not uploaded and attempt < 10:
+        attempt += 1
         try:
             if gauth.credentials is None:
                 # Authenticate if they're not there
@@ -83,18 +87,38 @@ def save_checkpoint(model, optimizer, learning_rate, iteration, filepath, drive_
                 gauth.Authorize()
             # Save the current credentials to a file
             # gauth.SaveCredentialsFile("GoogleDriveCredentials.txt")
-            for file in drive.ListFile({'q': "'" + drive_fid + "' in parents"}).GetList():
-                file.Delete()
-                sleep(30) #make sure the file is deleted from drive first
             f = drive.CreateFile({
-                'title': filepath[filepath.find("/")+1:], 
+                'title': file_title, 
                 "parents": [{"kind": "drive#fileLink", "id": drive_fid}]
                 })
             f.SetContentFile(filepath)
             f.Upload()
+            uploaded = True
             break
         except:
+            print("Failed uploading to drive at attempt #{}".format(attempt))
             sleep(30)
+        if uploaded:
+            try:
+                ok = False
+                for file in drive.ListFile({'q': "'" + drive_fid + "' in parents"}).GetList():
+                    if file['title'] == file_title:
+                        if file["fileSize"] > 4000000:
+                            ok = True
+                            print("File was successfully uploaded")
+                        else:
+                            file.Delete()
+                            uploaded = False
+                            print("File was not uploaded normally. Deleting")
+                            sleep(30)
+                        break
+                if ok:
+                    for file in drive.ListFile({'q': "'" + drive_fid + "' in parents"}).GetList():
+                        if file['title'] != file_title:
+                            file.Delete()
+                            sleep(30) #make sure the file is deleted from drive first
+            except:
+                pass
 
 def train(num_gpus, rank, group_name, output_directory, epochs, learning_rate,
           sigma, iters_per_checkpoint, batch_size, seed, fp16_run, checkpoint_path, drive_fid):
